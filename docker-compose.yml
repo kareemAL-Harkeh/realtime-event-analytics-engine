@@ -1,0 +1,76 @@
+services:
+  # 1. قاعدة بيانات بوستغري (PostgreSQL)
+  postgres:
+    image: postgres:16-alpine
+    container_name: analytics_postgres
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      POSTGRES_DB: "${POSTGRES_DB:-LiveAnalyticsDb}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: always
+    networks:
+      - analytics_network
+
+  # 2. خدمة الريديس (Redis)
+  redis:
+    image: redis:alpine
+    container_name: analytics_redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    restart: always
+    networks:
+      - analytics_network
+
+  # 3. خدمة الباك إند (.NET 10)
+  backend:
+    image: analytics_backend
+    container_name: analytics_backend_api
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-5261}:5261"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
+      Redis__ConnectionString: "${REDIS_CONNECTION_STRING:-redis:6379,abortConnect=false}"
+      ConnectionStrings__EventStore: "${EVENT_STORE_CONNECTION:-Host=postgres;Port=5432;Database=LiveAnalyticsDb;Username=postgres;Password=postgres}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: always
+    networks:
+      - analytics_network
+
+  # 4. خدمة الفرونت إند (React + Vite)
+  frontend:
+    image: analytics_frontend
+    container_name: analytics_frontend_app
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-5174}:5173"
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - analytics_network
+
+volumes:
+  postgres_data:
+
+networks:
+  analytics_network:
+    driver: bridge

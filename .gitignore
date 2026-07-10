@@ -1,0 +1,38 @@
+# Ignore build outputs and temporary files
+bin/
+.bin/
+obj/
+logs/
+*.log
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ASP.NET build artifacts
+backend/bin/
+backend/obj/
+backend/**/*.user
+
+# Node and frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# ⚠️ Environment files — never commit secrets
+.env
+.env.dev
+.env.prod
+.env.local
+.env.production
+.env.development
+*.env

@@ -1,0 +1,84 @@
+@HostAddress = http://localhost:5000
+@ContentType = application/json
+
+### Log a successful user event
+POST {{HostAddress}}/api/events
+Content-Type: {{ContentType}}
+
+{
+  "eventType": "user_login",
+  "payload": "{\"userId\": \"user-123\", \"ipAddress\": \"192.168.1.100\", \"device\": \"desktop\"}",
+  "source": "web-client",
+  "timestamp": "2026-05-26T10:30:45.123+00:00"
+}
+
+###
+
+### Log a payment success event
+POST {{HostAddress}}/api/events
+Content-Type: {{ContentType}}
+
+{
+  "eventType": "payment_success",
+  "payload": "{\"transactionId\": \"txn-456\", \"amount\": 150.50, \"currency\": \"USD\"}",
+  "source": "payment-gateway",
+  "timestamp": "2026-05-26T10:31:00.000+00:00"
+}
+
+###
+
+### Log an error event
+POST {{HostAddress}}/api/events
+Content-Type: {{ContentType}}
+
+{
+  "eventType": "error_occurred",
+  "payload": "{\"errorCode\": \"DB_CONNECTION_FAILED\", \"severity\": \"critical\", \"duration\": 2500}",
+  "source": "api-server",
+  "timestamp": "2026-05-26T10:31:15.500+00:00"
+}
+
+###
+
+### Fetch dashboard data (15-minute window, default)
+GET {{HostAddress}}/api/dashboard?windowMinutes=15
+Accept: {{ContentType}}
+
+###
+
+### Fetch dashboard data (60-minute window)
+GET {{HostAddress}}/api/dashboard?windowMinutes=60
+Accept: {{ContentType}}
+
+###
+
+### Fetch dashboard data (5-minute window for real-time monitoring)
+GET {{HostAddress}}/api/dashboard?windowMinutes=5
+Accept: {{ContentType}}
+
+###
+
+### Log multiple rapid events for load testing
+POST {{HostAddress}}/api/events
+Content-Type: {{ContentType}}
+
+{
+  "eventType": "request_processed",
+  "payload": "{\"endpointPath\": \"/api/orders\", \"httpStatus\": 200, \"responseTime\": 25}",
+  "source": "api-gateway",
+  "timestamp": ""
+}
+
+###
+
+### Log event with auto timestamp (will be set to UtcNow on server)
+POST {{HostAddress}}/api/events
+Content-Type: {{ContentType}}
+
+{
+  "eventType": "cache_hit",
+  "payload": "{\"cacheKey\": \"dashboard:15\", \"hitRate\": 0.92}",
+  "source": "redis-cache"
+}
+
+###

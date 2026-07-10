@@ -1,0 +1,23 @@
+# Ignore build artifacts and logs
+bin/
+obj/
+**/bin/
+**/obj/
+logs/
+*.log
+
+# Sensitive / local configuration
+.env*
+appsettings.Development.json
+
+# IDE / OS
+.vscode/
+*.user
+*.suo
+.DS_Store
+
+# Node / frontend artifacts (if accidentally present)
+node_modules/
+
+# Misc
+*.db

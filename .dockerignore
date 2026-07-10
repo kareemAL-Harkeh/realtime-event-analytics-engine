@@ -1,0 +1,11 @@
+# Root-level dockerignore to avoid sending large / sensitive files in root context
+.git/
+node_modules/
+frontend/node_modules/
+backend/bin/
+backend/obj/
+logs/
+*.log
+.env*
+.vscode/
+.DS_Store
