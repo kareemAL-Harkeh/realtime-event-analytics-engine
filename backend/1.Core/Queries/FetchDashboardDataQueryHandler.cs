@@ -10,7 +10,7 @@ namespace RealTimeEventAnalyticsEngine.Core.Queries;
 public sealed class FetchDashboardDataQueryHandler
 {
     private readonly IRedisCacheService _cache;
-    private readonly IEventRepository _repository; // 🛠️ حقن واجهة القراءة النظيفة من الكور
+    private readonly IEventRepository _repository; 
     
     // Thread-safe, non-blocking gatekeeper to absorb concurrent connection rushes
     private static readonly SemaphoreSlim DatabaseLock = new(1, 1);

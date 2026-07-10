@@ -31,7 +31,6 @@ export function RealtimePanel() {
         ) : (
           <div className="space-y-3">
             {events.map((event, index) => (
-              // ✅ key أكثر فرادة — يضمن عدم التعارض بين events متشابهة
               <div
                 key={`${event.eventType}-${event.timestamp}-${index}`}
                 className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-4"

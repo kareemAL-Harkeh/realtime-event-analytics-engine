@@ -85,7 +85,6 @@ public sealed class EventWriteRepository : IEventRepository
                     eventType,
                     payload,
                     source,
-                    // ✅ موزعة على آخر 30 يوم — متوافقة مع الـ default window (43200 دقيقة)
                     f.Date.BetweenOffset(
                         DateTimeOffset.UtcNow.AddDays(-30),
                         DateTimeOffset.UtcNow)

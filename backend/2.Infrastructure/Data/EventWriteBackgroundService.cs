@@ -47,7 +47,6 @@ public sealed class EventWriteBackgroundService : BackgroundService
 
         try
         {
-            // 🛠️ Tech Lead Fix: Advanced Channel Reading loop ensuring timeouts are evaluated even during traffic drops
             while (!stoppingToken.IsCancellationRequested)
             {
                 // Check if there is data available to read, or evaluate timeout if the batch is not empty
@@ -60,7 +59,6 @@ public sealed class EventWriteBackgroundService : BackgroundService
                     {
                         batch.Add(command);
 
-                        // 1. Pipeline Action A: Fire-and-forget distributed Redis caching and live broadcast concurrently
                         _ = ProcessSideEffectsAsync(command, stoppingToken);
                     }
                     else
@@ -69,7 +67,6 @@ public sealed class EventWriteBackgroundService : BackgroundService
                     }
                 }
 
-                // 🛠️ Tech Lead Fix: Strict evaluation of bounds (Size reached OR maximum stay timeout elapsed)
                 if (batch.Count > 0 && (batch.Count >= BatchSize || batchTimer.ElapsedMilliseconds >= BatchTimeoutMs))
                 {
                     await FlushBatchWithClearAsync(batch, batchTimer, stoppingToken);
@@ -100,7 +97,6 @@ public sealed class EventWriteBackgroundService : BackgroundService
     {
         try
         {
-            // 2. Pipeline Action B: Batch persistent flushing to PostgreSQL via Dapper UNNEST
             await _repository.SaveEventsBatchAsync(batch, token);
             _logger.LogDebug("Successfully persisted batch of {Count} analytical events.", batch.Count);
         }
