@@ -1,10 +1,11 @@
+version: '3.8'
+
 services:
-  # 1. قاعدة بيانات بوستغري (PostgreSQL)
+  # 1. قاعدة بيانات بوستغري (PostgreSQL) - معزولة بالكامل داخلياً
   postgres:
     image: postgres:16-alpine
     container_name: analytics_postgres
-    ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+    # حذفنا البورت الخارجي كرمال الأمان، الحاويات بتتصل داخلياً عبر بورت 5432
     environment:
       POSTGRES_USER: "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
@@ -21,29 +22,27 @@ services:
     networks:
       - analytics_network
 
-  # 2. خدمة الريديس (Redis)
+  # 2. خدمة الريديس (Redis) - معزولة بالكامل داخلياً
   redis:
     image: redis:alpine
     container_name: analytics_redis
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    # حذفنا البورت الخارجي للأمان
     restart: always
     networks:
       - analytics_network
 
-  # 3. خدمة الباك إند (.NET 10)
+  # 3. خدمة الباك إند (.NET 10) - مربوطة بالشبكتين
   backend:
     image: analytics_backend
     container_name: analytics_backend_api
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "${BACKEND_PORT:-5261}:5261"
+    # ملاحظة: بالـ Connection String غيرنا Host=postgres لـ Host=analytics_postgres (اسم الكونتينر الصريح)
     environment:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
-      Redis__ConnectionString: "${REDIS_CONNECTION_STRING:-redis:6379,abortConnect=false}"
-      ConnectionStrings__EventStore: "${EVENT_STORE_CONNECTION:-Host=postgres;Port=5432;Database=LiveAnalyticsDb;Username=postgres;Password=postgres}"
+      Redis__ConnectionString: "${REDIS_CONNECTION_STRING:-analytics_redis:6379,abortConnect=false}"
+      ConnectionStrings__EventStore: "${EVENT_STORE_CONNECTION:-Host=analytics_postgres;Port=5432;Database=LiveAnalyticsDb;Username=postgres;Password=postgres}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,22 +50,22 @@ services:
         condition: service_started
     restart: always
     networks:
-      - analytics_network
+      - analytics_network # للاتصال بقاعدة البيانات والريديس
+      - proxy-network    # كرمال NPM يقدر يشوف الـ API
 
-  # 4. خدمة الفرونت إند (React + Vite)
+  # 4. خدمة الفرونت إند (React + Vite) - مربوطة بالشبكتين
   frontend:
     image: analytics_frontend
     container_name: analytics_frontend_app
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "${FRONTEND_PORT:-5174}:5173"
     depends_on:
       - backend
     restart: always
     networks:
       - analytics_network
+      - proxy-network    # كرمال NPM يشوف تطبيق الـ React ويفتحه للمستخدمين
 
 volumes:
   postgres_data:
@@ -74,3 +73,5 @@ volumes:
 networks:
   analytics_network:
     driver: bridge
+  proxy-network:         # الشبكة الخارجية المشتركة مع Nginx Proxy Manager
+    external: true
