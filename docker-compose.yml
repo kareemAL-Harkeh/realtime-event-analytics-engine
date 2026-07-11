@@ -1,11 +1,9 @@
 version: '3.8'
 
 services:
-  # 1. قاعدة بيانات بوستغري (PostgreSQL) - معزولة بالكامل داخلياً
   postgres:
     image: postgres:16-alpine
     container_name: analytics_postgres
-    # حذفنا البورت الخارجي كرمال الأمان، الحاويات بتتصل داخلياً عبر بورت 5432
     environment:
       POSTGRES_USER: "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
@@ -22,23 +20,19 @@ services:
     networks:
       - analytics_network
 
-  # 2. خدمة الريديس (Redis) - معزولة بالكامل داخلياً
   redis:
     image: redis:alpine
     container_name: analytics_redis
-    # حذفنا البورت الخارجي للأمان
     restart: always
     networks:
       - analytics_network
 
-  # 3. خدمة الباك إند (.NET 10) - مربوطة بالشبكتين
   backend:
     image: analytics_backend
     container_name: analytics_backend_api
     build:
       context: ./backend
       dockerfile: Dockerfile
-    # ملاحظة: بالـ Connection String غيرنا Host=postgres لـ Host=analytics_postgres (اسم الكونتينر الصريح)
     environment:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
       Redis__ConnectionString: "${REDIS_CONNECTION_STRING:-analytics_redis:6379,abortConnect=false}"
@@ -50,10 +44,9 @@ services:
         condition: service_started
     restart: always
     networks:
-      - analytics_network # للاتصال بقاعدة البيانات والريديس
-      - proxy-network    # كرمال NPM يقدر يشوف الـ API
+      - analytics_network 
+      - proxy-network    
 
-  # 4. خدمة الفرونت إند (React + Vite) - مربوطة بالشبكتين
   frontend:
     image: analytics_frontend
     container_name: analytics_frontend_app
@@ -65,7 +58,7 @@ services:
     restart: always
     networks:
       - analytics_network
-      - proxy-network    # كرمال NPM يشوف تطبيق الـ React ويفتحه للمستخدمين
+      - proxy-network    
 
 volumes:
   postgres_data:
@@ -73,5 +66,5 @@ volumes:
 networks:
   analytics_network:
     driver: bridge
-  proxy-network:         # الشبكة الخارجية المشتركة مع Nginx Proxy Manager
+  proxy-network:         
     external: true
