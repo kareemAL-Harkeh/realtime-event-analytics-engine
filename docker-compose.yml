@@ -45,7 +45,7 @@ services:
     restart: always
     networks:
       - analytics_network 
-      - proxy-network    
+      - apps-network    
 
   frontend:
     image: analytics_frontend
@@ -58,7 +58,7 @@ services:
     restart: always
     networks:
       - analytics_network
-      - proxy-network    
+      - apps-network    
 
 volumes:
   postgres_data:
@@ -66,5 +66,5 @@ volumes:
 networks:
   analytics_network:
     driver: bridge
-  proxy-network:         
+  apps-network:         
     external: true
