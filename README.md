@@ -247,6 +247,37 @@ The architecture is designed to optimize both write and read paths:
 - Batch inserts reduce the number of database round trips.
 - Live updates avoid full-page refreshes through SignalR.
 
+## Testing & quality engineering
+
+This project is designed with a modern testing mindset, not just as a demo, but as a production-oriented system where reliability and regression safety are first-class concerns.
+
+### Testing approach
+
+- Unit tests for core business logic, command handlers, validators, and queue behavior
+- Behavioral tests for cache-aside logic and background processing flows
+- Regression tests to protect dashboard aggregation and real-time event processing paths
+- Quality gates that help maintain stability as the platform evolves
+
+### Current test foundation
+
+- xUnit as the main test framework
+- FluentAssertions for expressive and readable assertions
+- Coverlet for code coverage collection
+- Test suites organized around core and infrastructure responsibilities
+
+### Recommended next steps
+
+- Add integration tests for API endpoints and database interactions
+- Introduce container-based tests for PostgreSQL and Redis behavior
+- Add smoke and end-to-end tests for Docker Compose deployments
+- Establish CI pipelines with automatic build, test, and coverage reporting
+
+### Test command
+
+```bash
+cd tests
+dotnet test
+```
 
 ## Summary
 
