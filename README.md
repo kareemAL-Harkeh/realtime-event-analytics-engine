@@ -1,8 +1,17 @@
 # Real-time Event Analytics Engine
 
-A modern, production-oriented event-driven analytics platform built with ASP.NET Core and React. The system is designed to ingest high-volume events, process them asynchronously, persist them efficiently, cache dashboard data for low-latency reads, and broadcast live updates to the frontend in real time.
+<div align="left">
+  <a href="https://analytics-ex.duckdns.org/" target="_blank">
+    <img src="https://img.shields.io/badge/Live_Demo-Interactive_Dashboard-emerald?style=for-the-badge&logo=react&logoColor=white" alt="Live Demo" />
+  </a>
+  <img src="https://img.shields.io/badge/.NET_10-Enterprise_Backend-512BD4?style=for-the-badge&logo=.net&logoColor=white" alt=".NET 10" />
+</div>
 
-This project demonstrates a practical implementation of an observability-style architecture suitable for monitoring systems, SaaS products, payment platforms, e-commerce services, security telemetry, and internal business operations.
+###
+
+A high-performance, production-oriented telemetry and event streaming pipeline built with **.NET 10** and **React 19**. Architected to handle high-frequency data ingestion, the system decouples the write-path to achieve immediate sub-millisecond response times, processes event streaming asynchronously, and broadcasts live dashboard metrics to connected clients in real time.
+
+This platform demonstrates a resilient, enterprise-grade implementation of an observability-style architecture—fully containerized and tailored for mission-critical monitoring, high-scale SaaS products, payment gateways, and security telemetry workloads.
 
 ## Why this project exists
 
