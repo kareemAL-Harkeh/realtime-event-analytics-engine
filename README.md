@@ -2,132 +2,157 @@
 
 <div align="left">
   <a href="https://analytics-ex.duckdns.org/" target="_blank">
-    <img src="https://img.shields.io/badge/Live_Demo-Interactive_Dashboard-emerald?style=for-the-badge&logo=react&logoColor=white" alt="Live Demo" />
+    <img src="https://img.shields.io/badge/Live_Demo-Interactive_Dashboard-0f766e?style=for-the-badge&logo=react&logoColor=white" alt="Live Demo" />
   </a>
-  <img src="https://img.shields.io/badge/.NET_10-Enterprise_Backend-512BD4?style=for-the-badge&logo=.net&logoColor=white" alt=".NET 10" />
+  <a href="https://github.com/kareemAL-Harkeh/realtime-event-analytics-engine" target="_blank">
+    <img src="https://img.shields.io/badge/View_Source-GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="View source on GitHub" />
+  </a>
+  <a href="https://www.linkedin.com/in/kareem-al-harkeh/" target="_blank">
+    <img src="https://img.shields.io/badge/Connect-LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="Connect on LinkedIn" />
+  </a>
+  <a href="https://kareemalharkeh.vercel.app/" target="_blank">
+    <img src="https://img.shields.io/badge/Portfolio-Kareem_Alharkeh-0f766e?style=for-the-badge&logo=vercel&logoColor=white" alt="Open portfolio" />
+  </a>
+  <img src="https://img.shields.io/badge/.NET_10-Backend-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10" />
+  <img src="https://img.shields.io/badge/React_19-Frontend-149ECA?style=for-the-badge&logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white" alt="GitHub Actions" />
 </div>
 
-###
+## Overview
 
-A high-performance, production-oriented telemetry and event streaming pipeline built with **.NET 10** and **React 19**. Architected to handle high-frequency data ingestion, the system decouples the write-path to achieve immediate sub-millisecond response times, processes event streaming asynchronously, and broadcasts live dashboard metrics to connected clients in real time.
+Real-time Event Analytics Engine is a production-oriented telemetry pipeline and live monitoring dashboard. It accepts high-frequency events, acknowledges them without waiting for database I/O, persists them asynchronously in batches, and streams successfully persisted events to connected dashboard clients.
 
-This platform demonstrates a resilient, enterprise-grade implementation of an observability-style architecture—fully containerized and tailored for mission-critical monitoring, high-scale SaaS products, payment gateways, and security telemetry workloads.
+The project demonstrates practical backend engineering decisions for event-heavy systems: write-behind processing, bounded in-memory queues, batch persistence, cache-aside reads, role-based API key authorization, rate limiting, structured logging, and automated quality checks.
 
-## Why this project exists
+## What It Solves
 
-In modern systems, operational visibility is critical. Teams need to answer questions such as:
+Operational systems need visibility into what is happening now, which services are producing events, and whether failures are increasing. This project provides:
 
-- What is happening right now?
-- Are there spikes in errors or warnings?
-- Which services are generating the most events?
-- Is the system healthy or degrading?
-- How fast can we detect and respond to incidents?
+- A fast event ingestion endpoint for services, devices, or applications.
+- A dashboard endpoint for aggregated event metrics.
+- A live event feed powered by SignalR.
+- Durable PostgreSQL storage with Redis acceleration for read-heavy dashboards.
 
-This project provides a foundation for answering those questions through a real-time analytics dashboard and an event ingestion pipeline designed for performance and scalability.
+## Architecture
 
-## Key capabilities
+```text
+Client
+  |
+  | POST /api/events
+  v
+ASP.NET Core API
+  | validate -> authorize -> rate limit
+  v
+Bounded in-memory channel
+  |
+  v
+Background worker
+  | batch up to 100 events or flush every 2 seconds
+  +--> PostgreSQL (durable storage)
+  +--> Redis (cache and counters)
+  +--> SignalR /eventHub (live broadcast after successful persistence)
+```
 
-- High-throughput event ingestion via ASP.NET Core endpoints
-- Asynchronous background processing using a memory channel and background worker
-- Durable persistence to PostgreSQL through batch inserts
-- Fast dashboard reads using Redis cache-aside pattern
-- Live updates to the UI through SignalR
-- Clean separation of concerns using a layered architecture
-- Modern frontend dashboard with charts and real-time metrics
-- Docker-based deployment for local and containerized environments
+### Event ingestion flow
 
-## Architecture overview
+1. The client sends an event to `POST /api/events`.
+2. FluentValidation checks the payload.
+3. The handler enriches a missing timestamp and places the event in the bounded queue.
+4. The API returns `202 Accepted` without waiting for PostgreSQL, Redis, or SignalR.
+5. The background worker flushes a batch when it reaches 100 events or the 2-second timer fires.
+6. After a successful database write, Redis is updated and SignalR broadcasts the event.
 
-The system follows a layered and event-driven design:
+### Dashboard flow
 
-- Presentation layer: API endpoints, SignalR hub, middleware
-- Application layer: command/query handlers and validation
-- Infrastructure layer: PostgreSQL repository, Redis cache, background processing, logging
+1. The client calls `GET /api/dashboard?windowMinutes=...`.
+2. The query handler checks Redis first.
+3. On a cache miss, aggregated data is read from PostgreSQL and cached.
+4. Locks are scoped per time-window value so unrelated dashboard windows do not block each other.
 
-### Request flow
+## Key Engineering Decisions
 
-1. A client sends an event to the API.
-2. The request is validated and accepted quickly.
-3. The event is placed into an in-memory queue.
-4. A background service processes the queue and writes events in batches to PostgreSQL.
-5. Redis is updated for cache acceleration and live counters.
-6. SignalR broadcasts new events to connected clients in real time.
-7. The dashboard reads aggregated metrics from cache first, falling back to the database when needed.
+- **Asynchronous write-behind processing:** keeps the ingestion path responsive under burst traffic.
+- **Bounded queue with immediate rejection:** applies back-pressure without making callers wait indefinitely.
+- **Batch writes:** reduces database round trips and improves throughput.
+- **`ON CONFLICT DO NOTHING`:** prevents one duplicate event ID from failing an entire batch.
+- **Post-persistence side effects:** prevents Redis and SignalR from showing events that were not stored successfully.
+- **Independent flush timer:** ensures low-traffic batches do not remain in memory indefinitely.
+- **Role-based API keys:** keeps service ingestion separate from dashboard read access.
+- **Global exception handling:** returns a consistent error response and correlates failures with a trace ID.
+- **Environment-aware seeding:** sample data is restricted to development environments.
 
-## Main features
-
-### Backend
-
-- REST API for event submission
-- REST API for dashboard metrics
-- Validation middleware using FluentValidation
-- Structured logging with Serilog
-- Background service for non-blocking persistence
-- Redis-backed caching strategy
-- SignalR real-time communication
-
-### Frontend
-
-- Modern React + TypeScript interface
-- Vite-based fast development experience
-- Rich analytics cards and charts
-- Real-time dashboard updates
-- Responsive UI for desktop and tablet experiences
-
-## Tech stack
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Framer Motion
-- Recharts
-- Lucide React
-- SignalR client
+## Features
 
 ### Backend
 
-- ASP.NET Core
-- C#
-- .NET 10
-- FluentValidation
-- Serilog
-- SignalR
-- Dapper
-- Npgsql
-- StackExchange.Redis
-- Bogus
+- Minimal REST APIs built with ASP.NET Core and .NET 10.
+- `POST /api/events` for asynchronous event ingestion.
+- `GET /api/dashboard` for aggregated metrics.
+- SignalR hub for live event delivery.
+- FluentValidation for command and query validation.
+- Dapper and Npgsql for efficient PostgreSQL access.
+- Redis cache-aside strategy and live counters.
+- Token-bucket rate limiting for ingestion.
+- Fixed-window rate limiting for dashboard reads.
+- Serilog console and rolling-file logging.
+- Global exception handling with traceable error responses.
 
-### Data & infrastructure
+### Frontend
 
-- PostgreSQL
-- Redis
-- Docker
-- Docker Compose
-- Nginx
+- React 19 with TypeScript.
+- Vite development and production build tooling.
+- Tailwind CSS for responsive styling.
+- Recharts for event distribution visualizations.
+- Framer Motion for interface transitions.
+- SignalR client for live event updates.
+- Nginx container for production static hosting.
 
-## Project structure
+## Technology Stack
+
+| Area | Technologies |
+| --- | --- |
+| Backend | C#, .NET 10, ASP.NET Core Minimal APIs |
+| Application patterns | CQRS-style handlers, layered architecture, dependency inversion |
+| Validation | FluentValidation |
+| Persistence | PostgreSQL, Dapper, Npgsql |
+| Caching | Redis, StackExchange.Redis |
+| Realtime | SignalR |
+| Observability | Serilog, performance logging middleware |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
+| Visualization | Recharts, Framer Motion, Lucide React |
+| Testing | xUnit, Microsoft.NET.Test.Sdk, Coverlet, NetArchTest |
+| Delivery | Docker, Docker Compose, Nginx, GitHub Actions |
+
+## Project Structure
 
 ```text
 backend/
-  1.Core/
+  Core/
     Commands/
+    Constants/
     Interfaces/
     Queries/
     Validation/
-  2.Infrastructure/
+  Infrastructure/
     Cache/
     Constants/
     Data/
     Extensions/
     Logging/
-  3.Presentation/
+  Presentation/
+    Authentication/
     Endpoints/
+    Extensions/
     Hubs/
     Middleware/
     Responses/
+
+Tests/
+  Architecture/
+  Core/
+  Infrastructure/
+  Integration/
+  TestDoubles/
 
 frontend/
   src/
@@ -137,99 +162,93 @@ frontend/
     api.ts
     types.ts
 
-Dockerfile files
+.github/workflows/ci.yml
 docker-compose.yml
-README.md
 ```
 
-## Getting started
+## API Contract
 
-### Prerequisites
+### Authentication
 
-- Docker Desktop
-- .NET 10 SDK (optional if you want to run the backend directly)
-- Node.js 20+ and npm (for frontend development)
+Protected REST endpoints use the `X-Api-Key` header:
 
-### Run with Docker
+```http
+X-Api-Key: <api-key>
+```
 
-From the project root:
+Available roles:
+
+| Role | Endpoint |
+| --- | --- |
+| `ingestion-client` | `POST /api/events` |
+| `dashboard-client` | `GET /api/dashboard` |
+
+Missing or invalid keys return `401 Unauthorized`. A valid key with the wrong role returns `403 Forbidden`.
+
+### `POST /api/events`
 
 ```bash
-docker compose up --build
+curl -X POST "http://localhost:5261/api/events" \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: <ingestion-api-key>" \
+  -d '{
+    "eventType": "payment_failed",
+    "payload": "{\"transactionId\":\"txn-456\",\"reason\":\"timeout\"}",
+    "source": "payment-service"
+  }'
 ```
 
-This brings up:
+The endpoint returns `202 Accepted` when the event is successfully queued. `timestamp` is optional; when omitted, the backend assigns the current UTC time.
 
-- PostgreSQL
-- Redis
-- Backend API
-- Frontend UI
-
-### Access the application
-
-- Frontend: http://localhost:5174
-- Backend API: http://localhost:5261
-
-## API endpoints
-
-### POST /api/events
-
-Accepts a new event payload and returns a fast acknowledgement.
-
-Example request:
-
-```json
-{
-  "eventType": "error",
-  "payload": "{\"message\":\"Payment failed\"}",
-  "source": "payment-service"
-}
-```
-
-### GET /api/dashboard
-
-Returns dashboard metrics for a selected time window.
-
-Example:
+### `GET /api/dashboard`
 
 ```bash
-curl "http://localhost:5261/api/dashboard?windowMinutes=15"
+curl "http://localhost:5261/api/dashboard?windowMinutes=30" \
+  -H "X-Api-Key: <dashboard-api-key>"
 ```
 
-### SignalR hub
+`windowMinutes` must be between 1 minute and 43,200 minutes (30 days). The response contains total events, event counts by type, and the recent success rate.
 
-Real-time event updates are broadcast through:
+### SignalR
+
+The hub is available at:
 
 ```text
 /eventHub
 ```
 
-## Configuration
+Clients listen for the `ReceiveEvent` message. The current hub endpoint is intentionally unauthenticated; REST API key authorization does not automatically secure SignalR browser connections.
 
-The backend uses configuration values such as:
+## Running Locally
 
-- Redis connection string
-- PostgreSQL connection string
-- CORS origins
-- environment-specific settings
+### Prerequisites
 
-Typical configuration keys include:
+- Docker Desktop
+- .NET 10 SDK
+- Node.js 20 or newer
+- npm
 
-- Redis__ConnectionString
-- ConnectionStrings__EventStore
+### Run the complete stack with Docker
 
-## Development workflow
+From the repository root:
 
-### Backend
+```bash
+docker compose up --build
+```
+
+The Compose stack contains PostgreSQL, Redis, the backend API, and the frontend served by Nginx. Connection strings, API keys, and ports can be supplied through environment variables or an untracked `.env` file.
+
+### Run the backend directly
+
+Start PostgreSQL and Redis first, then run:
 
 ```bash
 cd backend
 dotnet restore
-dotnet build
 dotnet run
 ```
 
-### Frontend
+### Run the frontend directly
 
 ```bash
 cd frontend
@@ -237,57 +256,52 @@ npm install
 npm run dev
 ```
 
-## Database behavior
+The Vite development proxy forwards `/api` and `/eventHub` to the backend at `http://localhost:5261`.
 
-On startup, the application can:
+## Configuration
 
-- create the required table if it does not exist
-- initialize the database connection
-- seed sample data when the database is empty
+Important backend configuration keys include:
 
-This makes local development and testing straightforward.
-
-## Performance characteristics
-
-The architecture is designed to optimize both write and read paths:
-
-- Writes are fast because persistence is deferred to a background worker.
-- Reads are fast because dashboard metrics are cached in Redis.
-- Batch inserts reduce the number of database round trips.
-- Live updates avoid full-page refreshes through SignalR.
-
-## Testing & quality engineering
-
-This project is designed with a modern testing mindset, not just as a demo, but as a production-oriented system where reliability and regression safety are first-class concerns.
-
-### Testing approach
-
-- Unit tests for core business logic, command handlers, validators, and queue behavior
-- Behavioral tests for cache-aside logic and background processing flows
-- Regression tests to protect dashboard aggregation and real-time event processing paths
-- Quality gates that help maintain stability as the platform evolves
-
-### Current test foundation
-
-- xUnit as the main test framework
-- FluentAssertions for expressive and readable assertions
-- Coverlet for code coverage collection
-- Test suites organized around core and infrastructure responsibilities
-
-### Recommended next steps
-
-- Add integration tests for API endpoints and database interactions
-- Introduce container-based tests for PostgreSQL and Redis behavior
-- Add smoke and end-to-end tests for Docker Compose deployments
-- Establish CI pipelines with automatic build, test, and coverage reporting
-
-### Test command
-
-```bash
-cd tests
-dotnet test
+```text
+ConnectionStrings__EventStore
+Redis__ConnectionString
+ASPNETCORE_ENVIRONMENT
+ApiKeys__0__Key
+ApiKeys__0__Name
+ApiKeys__0__Role
+ApiKeys__1__Key
+ApiKeys__1__Name
+ApiKeys__1__Role
 ```
 
-## Summary
+For Docker Compose, the commonly used variables are:
 
-Real-time Event Analytics Engine is a practical and modern example of how to build an event-driven analytics system that is fast, responsive, scalable, and visually helpful. It blends backend reliability, real-time communication, and modern UI development into a single cohesive platform.
+```text
+INGESTION_API_KEY
+DASHBOARD_API_KEY
+EVENT_STORE_CONNECTION
+REDIS_CONNECTION_STRING
+ASPNETCORE_ENVIRONMENT
+```
+
+Do not commit real keys or passwords. Use `.env` locally and your deployment platform's secret store in production.
+
+## Testing and CI
+
+The backend test project covers core logic, validators, queue behavior, architecture rules, HTTP endpoint authorization, validation, rate limiting, and dashboard responses. Integration tests use `WebApplicationFactory` with in-memory fakes for PostgreSQL and Redis, keeping the pipeline tests fast and deterministic.
+
+Run all backend tests:
+
+```bash
+dotnet test Tests/Tests.csproj
+```
+
+Run frontend quality checks:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+GitHub Actions runs the backend test project and frontend lint/build checks on every `push` and `pull_request` through [`.github/workflows/ci.yml`](.github/workflows/ci.yml).

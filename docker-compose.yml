@@ -37,6 +37,12 @@ services:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Production}"
       Redis__ConnectionString: "${REDIS_CONNECTION_STRING:-analytics_redis:6379,abortConnect=false}"
       ConnectionStrings__EventStore: "${EVENT_STORE_CONNECTION:-Host=analytics_postgres;Port=5432;Database=LiveAnalyticsDb;Username=postgres;Password=postgres}"
+      ApiKeys__0__Key: "${INGESTION_API_KEY:-dev-ingestion-key}"
+      ApiKeys__0__Name: "ingestion-client"
+      ApiKeys__0__Role: "ingestion-client"
+      ApiKeys__1__Key: "${DASHBOARD_API_KEY:-dev-dashboard-key}"
+      ApiKeys__1__Name: "dashboard-frontend"
+      ApiKeys__1__Role: "dashboard-client"
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,6 +59,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_INGESTION_API_KEY: "${INGESTION_API_KEY:-dev-ingestion-key}"
+        VITE_DASHBOARD_API_KEY: "${DASHBOARD_API_KEY:-dev-dashboard-key}"
     depends_on:
       - backend
     restart: always
