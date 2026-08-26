@@ -1,5 +1,5 @@
 # Real-time Event Analytics Engine
-
+[![CI](https://github.com/kareemAL-Harkeh/realtime-event-analytics-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/kareemAL-Harkeh/realtime-event-analytics-engine/actions/workflows/ci.yml)
 <div align="left">
   <a href="https://analytics-ex.duckdns.org/" target="_blank">
     <img src="https://img.shields.io/badge/Live_Demo-Interactive_Dashboard-0f766e?style=for-the-badge&logo=react&logoColor=white" alt="Live Demo" />
