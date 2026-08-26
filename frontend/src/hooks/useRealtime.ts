@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import type { EventFeedItem } from '../types';
 
@@ -8,7 +8,6 @@ export function useRealtimeFeed() {
   const [events, setEvents] = useState<EventFeedItem[]>([]);
   const [connected, setConnected] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const connectionRef = useRef<any>(null);
 
   useEffect(() => {
     const connection = new HubConnectionBuilder().withUrl(SIGNALR_URL).withAutomaticReconnect().build();
@@ -47,8 +46,6 @@ export function useRealtimeFeed() {
         setConnected(false);
         setHasError(true);
       });
-
-    connectionRef.current = connection;
 
     return () => {
       connection.stop();
