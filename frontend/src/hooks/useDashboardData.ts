@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DashboardOverview } from '../types';
 import { fetchDashboard } from '../api';
 
@@ -7,7 +7,7 @@ export function useDashboardData(windowMinutes = 43200) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -20,7 +20,7 @@ export function useDashboardData(windowMinutes = 43200) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [windowMinutes]);
 
   useEffect(() => {
     let active = true;
@@ -36,7 +36,7 @@ export function useDashboardData(windowMinutes = 43200) {
       active = false;
       window.clearInterval(interval);
     };
-  }, [windowMinutes]);
+  }, [loadDashboard]);
 
   const eventTypes = useMemo(() => {
     if (!dashboard) return [];
