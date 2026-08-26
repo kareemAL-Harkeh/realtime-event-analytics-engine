@@ -6,6 +6,10 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+ARG VITE_INGESTION_API_KEY=dev-ingestion-key
+ARG VITE_DASHBOARD_API_KEY=dev-dashboard-key
+ENV VITE_INGESTION_API_KEY=$VITE_INGESTION_API_KEY
+ENV VITE_DASHBOARD_API_KEY=$VITE_DASHBOARD_API_KEY
 RUN npm run build
 
 # Stage 2: Serve using Nginx
